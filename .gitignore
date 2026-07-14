@@ -144,3 +144,6 @@ coverage/
 smiles.txt
 config_local.yml
 devtools/seldon-output-*/
+
+
+contrib/data

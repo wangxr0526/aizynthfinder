@@ -74,7 +74,8 @@ def main() -> None:
 
     try:
         for filespec in FILES_TO_DOWNLOAD.values():
-            _download_file(filespec["url"], os.path.join(path, filespec["filename"]))
+            if not os.path.exists(os.path.join(path, filespec["filename"])):
+                _download_file(filespec["url"], os.path.join(path, filespec["filename"]))
     except requests.HTTPError as err:
         print(f"Download failed with message {str(err)}")
         sys.exit(1)

@@ -56,6 +56,8 @@ seaborn = "^0.13.2"
 dask = ">=2024.4.1" 
 numpy = "<2.0.0"
 reaction-utils = "^1.9.3"
+fastapi = "^0.115.0"
+uvicorn = {version = "^0.30.0", extras = ["standard"]}
 
 [tool.poetry.dev-dependencies]
 black = "^22.0.0"
@@ -80,6 +82,7 @@ aizynthcli = "aizynthfinder.interfaces.aizynthcli:main"
 cat_aizynth_output = "aizynthfinder.tools.cat_output:main"
 download_public_data = "aizynthfinder.tools.download_public_data:main"
 smiles2stock = "aizynthfinder.tools.make_stock:main"
+aizynthapi = "aizynthfinder.interfaces.aizynthapi:main"
 
 [tool.coverage.run]
 relative_files = true

@@ -63,6 +63,52 @@ as interfaces to the algorithm:
 
 Consult the documentation [here](https://molecularai.github.io/aizynthfinder/) for more information.
 
+### FastAPI service
+
+The repository also exposes the local models through FastAPI. After installing
+the project dependencies, start the single-worker service on port `8001`:
+
+    aizynthapi
+
+Or run it directly from this checkout:
+
+    ./.venv/bin/aizynthapi
+
+The service listens on `127.0.0.1:8001` by default. Set
+`AIZYNTHFINDER_API_HOST` or `AIZYNTHFINDER_API_PORT` to override this. Keep one
+worker per service process, because each worker loads the model and stock data.
+You can also pass `--host` and `--port` directly to `aizynthapi`.
+
+Models and stock data are loaded lazily by the first planning request for an
+algorithm and retained for the lifetime of the API process. Requests that only
+change `smiles` reuse both the loaded data and the existing finder
+configuration; keep the service process running between requests to benefit
+from this cache.
+
+    curl -sS http://127.0.0.1:8001/health
+    curl -sS -X POST http://127.0.0.1:8001/aizynthfinder_plan \
+      -H 'Content-Type: application/json' \
+      -d '{"smiles":"CCOC(=O)c1ccccc1","iterations":100,"expansion_topk":50}'
+
+`algorithm` accepts `mcts` (the default/original setup), `original` (an alias
+for MCTS), or `retrostar`. `model` accepts `uspto`, `ringbreaker`, or `multi`
+(the combined USPTO and RingBreaker strategy). The response contains search
+statistics, stock information, and serialised routes.
+
+Use the following payload for AiZynthFinder's Retro* search tree with the USPTO
+single-step policy and only the configured ZINC building-block stock:
+
+    curl -sS -X POST http://127.0.0.1:8001/aizynthfinder_plan \
+      -H 'Content-Type: application/json' \
+      -d '{"smiles":"CCOC(=O)c1ccccc1","algorithm":"retrostar","model":"uspto","stocks":["zinc"]}'
+
+The same payload is accepted inside `request.json` by the disk-backed
+`/aizynthfinder_plan_async` endpoint.
+
+The filter policy is disabled by default (`use_filter=false`) for both MCTS and
+Retro*. Pass `"use_filter": true` explicitly only when a filter-model comparison
+is required.
+
 To use the tool you need
 
     1. A stock file
