@@ -57,12 +57,18 @@ _CONFIG_PATHS = {
 _MODEL_SELECTIONS = {
     "uspto": ["uspto"],
     "ringbreaker": ["ringbreaker"],
+    "reaxys": ["reaxys"],
     "multi": ["multi_expansion_strategy"],
 }
 _SEARCH_SETUPS = {
     "retrostar_uspto_zinc": {
         "algorithm": "retrostar",
         "model": "uspto",
+        "stocks": ["zinc"],
+    },
+    "retrostar_reaxys_zinc": {
+        "algorithm": "retrostar",
+        "model": "reaxys",
         "stocks": ["zinc"],
     },
 }
@@ -73,7 +79,7 @@ class PlanRequest(BaseModel):
 
     smiles: str = Field(..., min_length=1, max_length=1000)
     algorithm: Literal["mcts", "retrostar", "original"] = "mcts"
-    model: Literal["uspto", "ringbreaker", "multi"] = "uspto"
+    model: Literal["uspto", "ringbreaker", "reaxys", "multi"] = "uspto"
     iterations: int = Field(100, ge=1, le=10_000)
     time_limit: float = Field(120, gt=0, le=3_600)
     expansion_topk: int = Field(50, ge=1, le=500)

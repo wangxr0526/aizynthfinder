@@ -16,10 +16,20 @@ def test_health_endpoint():
     payload = response.json()
     assert payload["status"] == "ok"
     assert payload["default_port"] == 8001
-    assert payload["available_models"] == ["uspto", "ringbreaker", "multi"]
+    assert payload["available_models"] == [
+        "uspto",
+        "ringbreaker",
+        "reaxys",
+        "multi",
+    ]
     assert payload["available_search_setups"]["retrostar_uspto_zinc"] == {
         "algorithm": "retrostar",
         "model": "uspto",
+        "stocks": ["zinc"],
+    }
+    assert payload["available_search_setups"]["retrostar_reaxys_zinc"] == {
+        "algorithm": "retrostar",
+        "model": "reaxys",
         "stocks": ["zinc"],
     }
     assert payload["filter_policy_default_enabled"] is False
@@ -47,7 +57,7 @@ def test_plan_endpoint_forwards_parameters(monkeypatch):
         json={
             "smiles": "CCOC(=O)c1ccccc1",
             "algorithm": "retrostar",
-            "model": "ringbreaker",
+            "model": "reaxys",
             "use_filter": True,
             "iterations": 100,
             "expansion_topk": 50,
@@ -56,10 +66,20 @@ def test_plan_endpoint_forwards_parameters(monkeypatch):
 
     assert response.status_code == 200
     assert captured["request"].algorithm == "retrostar"
-    assert captured["request"].model == "ringbreaker"
+    assert captured["request"].model == "reaxys"
     assert captured["request"].use_filter is True
     assert captured["request"].iterations == 100
     assert response.json()["statistics"]["is_solved"] is True
+
+
+def test_reaxys_model_maps_to_independent_expansion_policy():
+    request = aizynthapi.PlanRequest(
+        smiles="CCO", algorithm="retrostar", model="reaxys"
+    )
+
+    assert request.model == "reaxys"
+    assert aizynthapi._MODEL_SELECTIONS[request.model] == ["reaxys"]
+    assert aizynthapi._MODEL_SELECTIONS["multi"] == ["multi_expansion_strategy"]
 
 
 def test_plan_endpoint_validates_topk():

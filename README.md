@@ -91,9 +91,10 @@ from this cache.
       -d '{"smiles":"CCOC(=O)c1ccccc1","iterations":100,"expansion_topk":50}'
 
 `algorithm` accepts `mcts` (the default/original setup), `original` (an alias
-for MCTS), or `retrostar`. `model` accepts `uspto`, `ringbreaker`, or `multi`
-(the combined USPTO and RingBreaker strategy). The response contains search
-statistics, stock information, and serialised routes.
+for MCTS), or `retrostar`. `model` accepts `uspto`, `ringbreaker`, `reaxys`, or
+`multi` (the combined USPTO and RingBreaker strategy). Reaxys is independent of
+`multi`. The response contains search statistics, stock information, and
+serialised routes.
 
 Use the following payload for AiZynthFinder's Retro* search tree with the USPTO
 single-step policy and only the configured ZINC building-block stock:
@@ -102,12 +103,49 @@ single-step policy and only the configured ZINC building-block stock:
       -H 'Content-Type: application/json' \
       -d '{"smiles":"CCOC(=O)c1ccccc1","algorithm":"retrostar","model":"uspto","stocks":["zinc"]}'
 
+Select the Reaxys single-step policy without changing the Retro* search tree or
+ZINC stock by setting `model` to `reaxys`:
+
+    curl -sS -X POST http://127.0.0.1:8001/aizynthfinder_plan \
+      -H 'Content-Type: application/json' \
+      -d '{"smiles":"CCOC(=O)c1ccccc1","algorithm":"retrostar","model":"reaxys","stocks":["zinc"]}'
+
 The same payload is accepted inside `request.json` by the disk-backed
 `/aizynthfinder_plan_async` endpoint.
 
 The filter policy is disabled by default (`use_filter=false`) for both MCTS and
 Retro*. Pass `"use_filter": true` explicitly only when a filter-model comparison
 is required.
+
+#### Reaxys model conversion
+
+The Reaxys policy is licensed separately under CC BY-NC 4.0; see
+`LICENSE_REAXYS_MODEL`. Its TorchServe archive is converted once to a native
+AiZynthFinder ONNX policy and compressed template table. Conversion verifies the
+known archive checksum, template ordering, ONNX numerical output, and a fixed
+top-10 regression example before atomically installing the assets.
+
+The conversion-only packages are intentionally not project dependencies. On a
+host with the template-relevance image available, run the converter in a
+disposable container from the project root:
+
+    docker run --rm --user "$(id -u):$(id -g)" \
+      --entrypoint /bin/bash \
+      -v "$PWD:/workspace" \
+      -v /path/to/reaxys.mar:/input/reaxys.mar:ro \
+      -w /workspace \
+      registry.gitlab.com/mlpds_mit/askcosv2/askcos2_core/retro/template_relevance:1.0-gpu \
+      -lc '/opt/conda/bin/python3.9 -m pip install --quiet \
+        --target /tmp/reaxys-convert "numpy<1.23" onnx==1.14.1 onnxruntime==1.16.3 \
+        && PYTHONPATH=/tmp/reaxys-convert /opt/conda/bin/python3.9 \
+        aizynthfinder/tools/convert_reaxys_model.py \
+        --source-mar /input/reaxys.mar --output-dir /workspace/contrib/data'
+
+The generated `reaxys.mar`, `reaxys_model.onnx`,
+`reaxys_templates.csv.gz`, and `reaxys_manifest.json` remain under the ignored
+`contrib/data` directory. Configure the policy with `chiral_fingerprints: true`
+and `rescale_prior: false`, because the exported ONNX model already returns
+softmax probabilities.
 
 To use the tool you need
 
